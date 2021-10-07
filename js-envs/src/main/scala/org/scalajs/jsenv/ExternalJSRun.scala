@@ -12,7 +12,9 @@
 
 package org.scalajs.jsenv
 
-import java.io.{IOException, OutputStream}
+import scala.annotation.tailrec
+
+import java.io.{IOException, InputStream, OutputStream}
 
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
@@ -129,19 +131,25 @@ object ExternalJSRun {
       config: RunConfig) = {
     val builder = new ProcessBuilder(command: _*)
 
-    if (config.inheritOutput)
-      builder.redirectOutput(ProcessBuilder.Redirect.INHERIT)
-
-    if (config.inheritError)
-      builder.redirectError(ProcessBuilder.Redirect.INHERIT)
-
     for ((name, value) <- env)
       builder.environment().put(name, value)
 
     config.logger.debug("Starting process: " + command.mkString(" "))
 
     try {
-      builder.start()
+      val process = builder.start()
+
+      /* scala-js#4560 Explicitly redirect out/err to System.out/System.err,
+       * instead of relying on `ProcessBuilder.Redirect.INHERIT`, so that
+       * streams installed with `System.setOut` and `System.setErr` are taken
+       * into account.
+       */
+      if (config.inheritOutput)
+        new PipeOutputThread(process.getInputStream(), System.out).start()
+      if (config.inheritError)
+        new PipeOutputThread(process.getErrorStream(), System.err).start()
+
+      process
     } catch {
       case NonFatal(t) =>
         throw new FailedToStartException(command, t)
@@ -157,6 +165,38 @@ object ExternalJSRun {
 
   final case class ClosedException()
       extends Exception("Termination was requested by user")
+}
+
+private final class PipeOutputThread(from: InputStream, to: OutputStream)
+    extends Thread {
+
+  private final val BufferSize = 8192
+
+  override def run(): Unit = {
+    // Copied from scala.sys.process.BasicIO.transferFully
+    try {
+      val buffer = new Array[Byte](BufferSize)
+      @tailrec def loop(): Unit = {
+        val byteCount = from.read(buffer)
+        if (byteCount > 0) {
+          to.write(buffer, 0, byteCount)
+          // flush() will throw an exception once the process has terminated
+          val available = try {
+            to.flush()
+            true
+          } catch {
+            case _: IOException => false
+          }
+          if (available)
+            loop()
+        }
+      }
+      loop()
+    } catch {
+      case _: java.io.InterruptedIOException => ()
+    }
+    from.close()
+  }
 }
 
 private final class ExternalJSRun(process: Process,
