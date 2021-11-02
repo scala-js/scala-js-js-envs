@@ -209,7 +209,7 @@ object ComRun {
   def start(config: RunConfig, onMessage: String => Unit)(startRun: Path => JSRun): JSComRun = {
     try {
       val serverSocket =
-        new ServerSocket(0, 0, InetAddress.getByName(null)) // Loopback address
+        new ServerSocket(0, 0, InetAddress.getByName("127.0.0.1")) // IPv4 loopback address
 
       val run = startRun(setupFile(serverSocket.getLocalPort))
 
@@ -248,7 +248,7 @@ object ComRun {
         s"""
            |(function() {
            |  // The socket for communication
-           |  var socket = require('net').connect($port);
+           |  var socket = require('net').connect($port, '127.0.0.1'); // IPv4 loopback address
            |
            |  // Buffers received data
            |  var inBuffer = Buffer.alloc(0);
