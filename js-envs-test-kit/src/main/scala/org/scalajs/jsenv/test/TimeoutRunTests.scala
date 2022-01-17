@@ -21,8 +21,9 @@ import org.junit.Assume._
 import org.scalajs.jsenv._
 import org.scalajs.jsenv.test.kit.{TestKit, Run}
 
-private[test] class TimeoutRunTests(config: JSEnvSuiteConfig, withCom: Boolean) {
-  private val kit = new TestKit(config.jsEnv, config.awaitTimeout)
+private[test] class TimeoutRunTests(config: JSEnvSuiteConfig, withCom: Boolean,
+    defaultInputKind: TestKit.InputKind) {
+  private val kit = new TestKit(config.jsEnv, config.awaitTimeout, defaultInputKind)
 
   private def withRun(input: String)(body: Run => Unit) = {
     if (withCom) kit.withComRun(input)(body)

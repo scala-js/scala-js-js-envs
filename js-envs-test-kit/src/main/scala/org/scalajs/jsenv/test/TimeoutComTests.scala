@@ -21,8 +21,9 @@ import org.junit.Assume._
 import org.scalajs.jsenv._
 import org.scalajs.jsenv.test.kit.TestKit
 
-private[test] class TimeoutComTests(config: JSEnvSuiteConfig) {
-  private val kit = new TestKit(config.jsEnv, config.awaitTimeout)
+private[test] class TimeoutComTests(config: JSEnvSuiteConfig,
+    defaultInputKind: TestKit.InputKind) {
+  private val kit = new TestKit(config.jsEnv, config.awaitTimeout, defaultInputKind)
 
   /** Slack for timeout tests (see #3457)
    *

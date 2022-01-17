@@ -13,6 +13,7 @@
 package org.scalajs.jsenv.test
 
 import org.scalajs.jsenv.JSEnv
+import org.scalajs.jsenv.test.kit.TestKit
 
 import scala.reflect.ClassTag
 
@@ -73,19 +74,38 @@ private object JSEnvSuiteRunner {
       if (config.supportsCom) List(TRUE, FALSE)
       else List(FALSE)
 
-    for (withCom <- withComValues)
-      runners.add(r[RunTests](config, "withCom" -> withCom))
+    val inputKindValues = {
+      import TestKit.InputKind
 
-    if (config.supportsTimeout) {
-      for (withCom <- withComValues)
-        runners.add(r[TimeoutRunTests](config, "withCom" -> withCom))
+      val b = List.newBuilder[InputKind]
+
+      if (config.supportsScripts)
+        b += InputKind.Script
+
+      if (config.supportsCommonJSModules)
+        b += InputKind.CommonJSModule
+
+      if (config.supportsESModules)
+        b += InputKind.ESModule
+
+      b.result
     }
 
-    if (config.supportsCom)
-      runners.add(r[ComTests](config))
+    for (inputKind <- inputKindValues) {
+      for (withCom <- withComValues)
+        runners.add(r[RunTests](config, "withCom" -> withCom, "inputKind" -> inputKind))
 
-    if (config.supportsCom && config.supportsTimeout)
-      runners.add(r[TimeoutComTests](config))
+      if (config.supportsTimeout) {
+        for (withCom <- withComValues)
+          runners.add(r[TimeoutRunTests](config, "withCom" -> withCom,  "inputKind" -> inputKind))
+      }
+
+      if (config.supportsCom)
+        runners.add(r[ComTests](config, "inputKind" -> inputKind))
+
+      if (config.supportsCom && config.supportsTimeout)
+        runners.add(r[TimeoutComTests](config, "inputKind" -> inputKind))
+    }
 
     runners
   }

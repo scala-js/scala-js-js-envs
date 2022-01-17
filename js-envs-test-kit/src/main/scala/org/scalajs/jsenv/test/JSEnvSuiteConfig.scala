@@ -28,6 +28,9 @@ import scala.concurrent.duration._
  *  @param supportsTimeout Whether the [[JSEnv]] under test supports the
  *      JavaScript timeout methods (as defined in
  *      [[http://www.scala-js.org/api/scalajs-library/latest/#scala.scalajs.js.timers.RawTimers$ RawTimers]]).
+ *  @param supportsScripts Whether the [[JSEnv]] under test supports [[JSEnv.Input.Script]].
+ *  @param supportsCommonJSModules Whether the [[JSEnv]] under test supports [[JSEnv.Input.CommonJSModule]].
+ *  @param supportsESModules Whether the [[JSEnv]] under test supports [[JSEnv.Input.ESModule]].
  *  @param awaitTimeout Amount of time test cases wait for "things". This is
  *      deliberately not very well specified. Leave this as the default and
  *      increase it if your tests fail spuriously due to timeouts.
@@ -40,6 +43,9 @@ final class JSEnvSuiteConfig private (
     val jsEnv: JSEnv,
     val supportsCom: Boolean,
     val supportsTimeout: Boolean,
+    val supportsScripts: Boolean,
+    val supportsCommonJSModules: Boolean,
+    val supportsESModules: Boolean,
     val exitJSStatement: Option[String],
     val awaitTimeout: FiniteDuration,
     val description: String
@@ -48,6 +54,9 @@ final class JSEnvSuiteConfig private (
       jsEnv = jsEnv,
       supportsCom = true,
       supportsTimeout = true,
+      supportsScripts = true,
+      supportsCommonJSModules = true,
+      supportsESModules = true,
       exitJSStatement = None,
       awaitTimeout = 1.minute,
       description = jsEnv.name
@@ -58,6 +67,15 @@ final class JSEnvSuiteConfig private (
 
   def withSupportsTimeout(supportsTimeout: Boolean): JSEnvSuiteConfig =
     copy(supportsTimeout = supportsTimeout)
+
+  def withSupportsScripts(supportsScripts: Boolean): JSEnvSuiteConfig =
+    copy(supportsScripts = supportsScripts)
+
+  def withSupportsCommonJSModules(supportsCommonJSModules: Boolean): JSEnvSuiteConfig =
+    copy(supportsCommonJSModules = supportsCommonJSModules)
+
+  def withSupportsESModules(supportsESModules: Boolean): JSEnvSuiteConfig =
+    copy(supportsESModules = supportsESModules)
 
   def withExitJSStatement(code: String): JSEnvSuiteConfig =
     copy(exitJSStatement = Some(code))
@@ -71,10 +89,14 @@ final class JSEnvSuiteConfig private (
   private def copy(
       supportsCom: Boolean = supportsCom,
       supportsTimeout: Boolean = supportsTimeout,
+      supportsScripts: Boolean = supportsScripts,
+      supportsCommonJSModules: Boolean = supportsCommonJSModules,
+      supportsESModules: Boolean = supportsESModules,
       exitJSStatement: Option[String] = exitJSStatement,
       awaitTimeout: FiniteDuration = awaitTimeout,
       description: String = description) = {
-    new JSEnvSuiteConfig(jsEnv, supportsCom, supportsTimeout,
+    new JSEnvSuiteConfig(jsEnv, supportsCom, supportsTimeout, supportsScripts,
+        supportsCommonJSModules, supportsESModules,
         exitJSStatement, awaitTimeout, description)
   }
 }
