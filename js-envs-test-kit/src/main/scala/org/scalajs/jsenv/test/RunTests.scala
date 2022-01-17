@@ -19,7 +19,7 @@ import java.nio.file.Files
 import com.google.common.jimfs.Jimfs
 
 import org.junit.Assume._
-import org.junit.{Test, Before, AssumptionViolatedException}
+import org.junit.{Test, AssumptionViolatedException}
 
 import org.scalajs.jsenv._
 import org.scalajs.jsenv.test.kit.{TestKit, Run}

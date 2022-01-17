@@ -67,13 +67,26 @@ private object JSEnvSuiteRunner {
   private def getRunners(config: JSEnvSuiteConfig): java.util.List[Runner] = {
     import java.lang.Boolean.{TRUE, FALSE}
 
-    java.util.Arrays.asList(
-        r[RunTests](config, "withCom" -> FALSE),
-        r[RunTests](config, "withCom" -> TRUE),
-        r[TimeoutRunTests](config, "withCom" -> FALSE),
-        r[TimeoutRunTests](config, "withCom" -> TRUE),
-        r[ComTests](config),
-        r[TimeoutComTests](config)
-    )
+    val runners = new java.util.ArrayList[Runner]
+
+    val withComValues =
+      if (config.supportsCom) List(TRUE, FALSE)
+      else List(FALSE)
+
+    for (withCom <- withComValues)
+      runners.add(r[RunTests](config, "withCom" -> withCom))
+
+    if (config.supportsTimeout) {
+      for (withCom <- withComValues)
+        runners.add(r[TimeoutRunTests](config, "withCom" -> withCom))
+    }
+
+    if (config.supportsCom)
+      runners.add(r[ComTests](config))
+
+    if (config.supportsCom && config.supportsTimeout)
+      runners.add(r[TimeoutComTests](config))
+
+    runners
   }
 }
