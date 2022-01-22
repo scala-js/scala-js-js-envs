@@ -129,15 +129,8 @@ final class TestKit(jsEnv: JSEnv, timeout: FiniteDuration,
   }
 
   /** Converts a Path to an Input based on this Kit's defaultInputKind */
-  def pathToInput(path: Path): Input = {
-    import TestKit.InputKind._
-
-    defaultInputKind match {
-      case Script         => Input.Script(path)
-      case CommonJSModule => Input.CommonJSModule(path)
-      case ESModule       => Input.ESModule(path)
-    }
-  }
+  def pathToInput(path: Path): Input =
+    TestKit.pathToInput(path, defaultInputKind)
 
   private def io[T <: JSRun](config: RunConfig)(start: RunConfig => T): (T, IOReader, IOReader) = {
     val out = new IOReader
@@ -173,6 +166,17 @@ object TestKit {
   /** Execution context to run completion callbacks from runs under test. */
   private val completer =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
+
+  /** Converts a Path to an Input based on the inputKind. */
+  def pathToInput(path: Path, inputKind: InputKind): Input = {
+    import InputKind._
+
+    inputKind match {
+      case Script         => Input.Script(path)
+      case CommonJSModule => Input.CommonJSModule(path)
+      case ESModule       => Input.ESModule(path)
+    }
+  }
 
   sealed trait InputKind
 
