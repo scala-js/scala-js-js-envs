@@ -146,7 +146,7 @@ object NodeJSEnv {
          * `import()` cannot be used from the standard input).
          */
         val importChain = input.foldLeft("Promise.resolve()") { (prev, item) =>
-          s"$prev.\n  then(${execInputExpr(item)})"
+          s"$prev.\n  then(() => ${execInputExpr(item)})"
         }
         val importerFileContent = {
           s"""

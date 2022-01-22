@@ -12,19 +12,15 @@
 
 package org.scalajs.jsenv.test
 
-import org.junit.{Before, Test, AssumptionViolatedException}
+import org.junit.{Test, AssumptionViolatedException}
 import org.junit.Assume._
 
 import org.scalajs.jsenv._
 import org.scalajs.jsenv.test.kit.TestKit
 
-private[test] class ComTests(config: JSEnvSuiteConfig) {
-  private val kit = new TestKit(config.jsEnv, config.awaitTimeout)
-
-  @Before
-  def before: Unit = {
-    assumeTrue("JSEnv needs com support", config.supportsCom)
-  }
+private[test] class ComTests(config: JSEnvSuiteConfig,
+    defaultInputKind: TestKit.InputKind) {
+  private val kit = new TestKit(config.jsEnv, config.awaitTimeout, defaultInputKind)
 
   @Test
   def basicTest: Unit = {

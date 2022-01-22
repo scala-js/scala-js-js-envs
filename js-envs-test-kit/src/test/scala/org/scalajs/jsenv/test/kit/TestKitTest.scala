@@ -22,7 +22,6 @@ import org.junit.Test
 import org.scalajs.jsenv._
 
 class TestKitTest {
-  import TestKit.codeToInput
   import TestKitTest._
 
   private def noHangTest(env: TestEnv, msg: String)(body: TestKit => Unit) = {

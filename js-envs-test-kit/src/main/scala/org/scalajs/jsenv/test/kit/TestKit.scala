@@ -41,15 +41,17 @@ import org.scalajs.jsenv._
  *  }}}
  *
  *  @note Methods in [[TestKit]] allow to take a string instead of an [[Input]].
- *      The string is converted into an input form supported by the [[JSEnv]] to
- *      execute the code therein.
+ *      The string is converted into an input via `defaultInputKind`.
  *
  *  @constructor Create a new [[TestKit]] for the given [[JSEnv]] and timeout.
  *  @param jsEnv The [[JSEnv]] to be tested.
  *  @param timeout Timeout for all `expect*` methods on [[Run]] / [[ComRun]].
  */
-final class TestKit(jsEnv: JSEnv, timeout: FiniteDuration) {
-  import TestKit.codeToInput
+final class TestKit(jsEnv: JSEnv, timeout: FiniteDuration,
+    defaultInputKind: TestKit.InputKind) {
+
+  def this(jsEnv: JSEnv, timeout: FiniteDuration) =
+    this(jsEnv, timeout, TestKit.InputKind.Script)
 
   /** Starts a [[Run]] for testing. */
   def start(code: String): Run =
@@ -126,6 +128,17 @@ final class TestKit(jsEnv: JSEnv, timeout: FiniteDuration) {
     finally run.close()
   }
 
+  /** Converts a Path to an Input based on this Kit's defaultInputKind */
+  def pathToInput(path: Path): Input = {
+    import TestKit.InputKind._
+
+    defaultInputKind match {
+      case Script         => Input.Script(path)
+      case CommonJSModule => Input.CommonJSModule(path)
+      case ESModule       => Input.ESModule(path)
+    }
+  }
+
   private def io[T <: JSRun](config: RunConfig)(start: RunConfig => T): (T, IOReader, IOReader) = {
     val out = new IOReader
     val err = new IOReader
@@ -147,17 +160,25 @@ final class TestKit(jsEnv: JSEnv, timeout: FiniteDuration) {
 
     (run, out, err)
   }
+
+  private def codeToInput(code: String): Seq[Input] = {
+    val p = Files.write(
+        Jimfs.newFileSystem().getPath("test.js"),
+        code.getBytes(StandardCharsets.UTF_8))
+    List(pathToInput(p))
+  }
 }
 
-private object TestKit {
+object TestKit {
   /** Execution context to run completion callbacks from runs under test. */
   private val completer =
     ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
 
-  private def codeToInput(code: String): Seq[Input] = {
-    val p = Files.write(
-        Jimfs.newFileSystem().getPath("testScript.js"),
-        code.getBytes(StandardCharsets.UTF_8))
-    List(Input.Script(p))
+  sealed trait InputKind
+
+  object InputKind {
+    case object Script extends InputKind
+    case object CommonJSModule extends InputKind
+    case object ESModule extends InputKind
   }
 }

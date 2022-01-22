@@ -14,21 +14,16 @@ package org.scalajs.jsenv.test
 
 import scala.concurrent.duration._
 
-import org.junit.{Before, Test}
+import org.junit.Test
 import org.junit.Assert._
 import org.junit.Assume._
 
 import org.scalajs.jsenv._
 import org.scalajs.jsenv.test.kit.TestKit
 
-private[test] class TimeoutComTests(config: JSEnvSuiteConfig) {
-  private val kit = new TestKit(config.jsEnv, config.awaitTimeout)
-
-  @Before
-  def before: Unit = {
-    assumeTrue("JSEnv needs timeout support", config.supportsTimeout)
-    assumeTrue("JSEnv needs com support", config.supportsCom)
-  }
+private[test] class TimeoutComTests(config: JSEnvSuiteConfig,
+    defaultInputKind: TestKit.InputKind) {
+  private val kit = new TestKit(config.jsEnv, config.awaitTimeout, defaultInputKind)
 
   /** Slack for timeout tests (see #3457)
    *

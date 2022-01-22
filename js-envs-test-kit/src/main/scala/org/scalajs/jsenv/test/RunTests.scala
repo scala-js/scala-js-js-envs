@@ -19,13 +19,14 @@ import java.nio.file.Files
 import com.google.common.jimfs.Jimfs
 
 import org.junit.Assume._
-import org.junit.{Test, Before, AssumptionViolatedException}
+import org.junit.{Test, AssumptionViolatedException}
 
 import org.scalajs.jsenv._
 import org.scalajs.jsenv.test.kit.{TestKit, Run}
 
-private[test] class RunTests(config: JSEnvSuiteConfig, withCom: Boolean) {
-  private val kit = new TestKit(config.jsEnv, config.awaitTimeout)
+private[test] class RunTests(config: JSEnvSuiteConfig, withCom: Boolean,
+    defaultInputKind: TestKit.InputKind) {
+  private val kit = new TestKit(config.jsEnv, config.awaitTimeout, defaultInputKind)
 
   private def withRun(input: Seq[Input])(body: Run => Unit) = {
     if (withCom) kit.withComRun(input)(body)
@@ -141,7 +142,7 @@ private[test] class RunTests(config: JSEnvSuiteConfig, withCom: Boolean) {
     val badFile = Jimfs.newFileSystem().getPath("nonexistent")
 
     // `start` may not throw but must fail asynchronously
-    withRun(Input.Script(badFile) :: Nil) {
+    withRun(kit.pathToInput(badFile) :: Nil) {
       _.fails()
     }
   }
@@ -155,7 +156,7 @@ private[test] class RunTests(config: JSEnvSuiteConfig, withCom: Boolean) {
       val tmpPath = tmpFile.toPath
       Files.write(tmpPath, "console.log(\"test\");".getBytes(StandardCharsets.UTF_8))
 
-      withRun(Input.Script(tmpPath) :: Nil) {
+      withRun(kit.pathToInput(tmpPath) :: Nil) {
         _.expectOut("test\n")
           .closeRun()
       }
