@@ -1,10 +1,10 @@
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 
-val previousVersion: Option[String] = Some("1.2.1")
+val previousVersion: Option[String] = Some("1.3.0")
 val newScalaBinaryVersionsInThisRelease: Set[String] = Set()
 
 inThisBuild(Def.settings(
-  version := "1.3.0",
+  version := "1.3.1-SNAPSHOT",
   organization := "org.scala-js",
   scalaVersion := "2.12.11",
   crossScalaVersions := Seq("2.11.12", "2.12.11", "2.13.2"),
@@ -132,13 +132,6 @@ lazy val `scalajs-js-envs-test-kit` = project
         "junit" % "junit" % "4.12",
         "com.novocode" % "junit-interface" % "0.11" % "test"
     ),
-    mimaBinaryIssueFilters ++= Seq(
-        // private[test], not an issue
-        ProblemFilters.exclude[Problem]("org.scalajs.jsenv.test.RunTests.*"),
-        ProblemFilters.exclude[Problem]("org.scalajs.jsenv.test.TimeoutRunTests.*"),
-        ProblemFilters.exclude[Problem]("org.scalajs.jsenv.test.ComTests.*"),
-        ProblemFilters.exclude[Problem]("org.scalajs.jsenv.test.TimeoutComTests.*"),
-    )
   )
   .dependsOn(`scalajs-js-envs`)
 
