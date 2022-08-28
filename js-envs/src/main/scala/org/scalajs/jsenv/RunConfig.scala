@@ -42,12 +42,26 @@ import org.scalajs.logging._
  *
  *  @param logger The logger to use in the run. A [[JSEnv]] is not required to
  *      log anything.
+ *
+ *  @param env Additional environment variables for this run.
+ *
+ *      How these are retrieved in the JS code run inside the [[JSEnv]] is
+ *      completely up to the implementation, including whether:
+ *      - they are implemented with system environment variables,
+ *      - they share the same namespace than the system environment variables.
+ *
+ *      However, in any case, the variables in [[env]] take precedence
+ *      over any (explicitly or implicitly) ambiant environment vars.
+ *
+ *      This is an optional feature; but [[JSEnv]]s are required to support an
+ *      empty [[env]].
  */
 final class RunConfig private (
   val onOutputStream: Option[RunConfig.OnOutputStream],
   val inheritOutput: Boolean,
   val inheritError: Boolean,
   val logger: Logger,
+  val env: Map[String, String],
   /** An option that will never be supported by anything because it is not exposed.
    *
    *  This is used to test that [[JSEnv]]s properly validate their configuration.
@@ -62,6 +76,7 @@ final class RunConfig private (
         inheritOutput = true,
         inheritError = true,
         logger = NullLogger,
+        env = Map.empty,
         eternallyUnsupportedOption = false)
   }
 
@@ -77,6 +92,9 @@ final class RunConfig private (
   def withLogger(logger: Logger): RunConfig =
     copy(logger = logger)
 
+  def withEnv(env: Map[String, String]): RunConfig =
+    copy(env = env)
+
   private[jsenv] def withEternallyUnsupportedOption(
       eternallyUnsupportedOption: Boolean): RunConfig =
     copy(eternallyUnsupportedOption = eternallyUnsupportedOption)
@@ -85,10 +103,11 @@ final class RunConfig private (
       inheritOutput: Boolean = inheritOutput,
       inheritError: Boolean = inheritError,
       logger: Logger = logger,
+      env: Map[String, String] = env,
       eternallyUnsupportedOption: Boolean = eternallyUnsupportedOption
   ): RunConfig = {
     new RunConfig(onOutputStream, inheritOutput, inheritError, logger,
-        eternallyUnsupportedOption)
+        env, eternallyUnsupportedOption)
   }
 
   /** Validates constraints on the config itself. */
@@ -119,9 +138,10 @@ final object RunConfig {
    */
   final class Validator private (
       inheritIO: Boolean,
-      onOutputStream: Boolean
+      onOutputStream: Boolean,
+      env: Boolean
   ) {
-    private def this() = this(false, false)
+    private def this() = this(false, false, false)
 
     /** The caller supports [[RunConfig#inheritOutput]] and
      *  [[RunConfig#inheritError]].
@@ -130,6 +150,9 @@ final object RunConfig {
 
     /** The caller supports [[RunConfig#onOutputStream]]. */
     def supportsOnOutputStream(): Validator = copy(onOutputStream = true)
+
+    /** The caller supports [[RunConfig#env]]. */
+    def supportsEnv(): Validator = copy(env = true)
 
     /** Validates that `config` is valid and only sets supported options.
      *
@@ -146,13 +169,19 @@ final object RunConfig {
       if (!onOutputStream && config.onOutputStream.isDefined)
         fail("onOutputStream is not supported.")
 
+      if (!env && config.env.nonEmpty)
+        fail("env is not supported.")
+
       if (config.eternallyUnsupportedOption)
         fail("eternallyUnsupportedOption is not supported.")
     }
 
-    private def copy(inheritIO: Boolean = inheritIO,
-        onOutputStream: Boolean = onOutputStream) = {
-      new Validator(inheritIO, onOutputStream)
+    private def copy(
+        inheritIO: Boolean = inheritIO,
+        onOutputStream: Boolean = onOutputStream,
+        env: Boolean = env
+    ) = {
+      new Validator(inheritIO, onOutputStream, env)
     }
   }
 

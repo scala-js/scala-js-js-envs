@@ -13,6 +13,7 @@
 package org.scalajs.jsenv
 
 import org.junit.Test
+import org.junit.Assert._
 
 class RunConfigTest {
   @Test
@@ -87,6 +88,25 @@ class RunConfigTest {
     RunConfig.Validator()
       .supportsInheritIO()
       .supportsOnOutputStream()
+      .validate(cfg)
+  }
+
+  @Test
+  def supportedEnv: Unit = {
+    val cfg = RunConfig()
+      .withEnv(Map("x" -> "y"))
+    RunConfig.Validator()
+      .supportsInheritIO()
+      .supportsEnv()
+      .validate(cfg)
+  }
+
+  @Test(expected = classOf[IllegalArgumentException])
+  def unsupportedEnv: Unit = {
+    val cfg = RunConfig()
+      .withEnv(Map("x" -> "y"))
+    RunConfig.Validator()
+      .supportsInheritIO()
       .validate(cfg)
   }
 
