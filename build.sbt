@@ -1,10 +1,10 @@
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 
-val previousVersion: Option[String] = Some("1.3.0")
+val previousVersion: Option[String] = Some("1.4.0")
 val newScalaBinaryVersionsInThisRelease: Set[String] = Set()
 
 inThisBuild(Def.settings(
-  version := "1.4.0",
+  version := "1.4.1-SNAPSHOT",
   organization := "org.scala-js",
   scalaVersion := "2.12.11",
   crossScalaVersions := Seq("2.11.12", "2.12.11", "2.13.2"),
