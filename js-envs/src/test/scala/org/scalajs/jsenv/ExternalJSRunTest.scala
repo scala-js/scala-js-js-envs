@@ -109,6 +109,29 @@ class ExternalJSRunTest {
     Await.result(run.future, 1.second)
   }
 
+  @Test
+  def setEnvOnRunConfig: Unit = {
+    val runConfig = RunConfig()
+      .withEnv(Map("EXTERNAL_JS_RUN_TEST" -> "witness"))
+    val config = silentConfig
+      .withRunConfig(runConfig)
+    val run = checkEnvRun("EXTERNAL_JS_RUN_TEST", "witness", config)
+
+    Await.result(run.future, 1.second)
+  }
+
+  @Test
+  def envOverrides: Unit = {
+    val runConfig = RunConfig()
+      .withEnv(Map("EXTERNAL_JS_RUN_TEST" -> "override"))
+    val config = silentConfig
+      .withEnv(Map("EXTERNAL_JS_RUN_TEST" -> "witness"))
+      .withRunConfig(runConfig)
+    val run = checkEnvRun("EXTERNAL_JS_RUN_TEST", "override", config)
+
+    Await.result(run.future, 1.second)
+  }
+
   // Confidence tests for checkEnvRun.
 
   @Test

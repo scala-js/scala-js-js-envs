@@ -69,6 +69,7 @@ object ExternalJSRun {
     validator
       .supportsInheritIO()
       .supportsOnOutputStream()
+      .supportsEnv()
   }
 
   /** Configuration for a [[ExternalJSRun]]
@@ -136,6 +137,10 @@ object ExternalJSRun {
       builder.redirectError(ProcessBuilder.Redirect.INHERIT)
 
     for ((name, value) <- env)
+      builder.environment().put(name, value)
+
+    // RunConfig#env takes precedence in case of collisions.
+    for ((name, value) <- config.env)
       builder.environment().put(name, value)
 
     config.logger.debug("Starting process: " + command.mkString(" "))
