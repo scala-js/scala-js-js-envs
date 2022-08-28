@@ -90,4 +90,44 @@ class ExternalJSRunTest {
     run.close()
     Await.result(run.future, 1.second)
   }
+
+  private def checkEnvRun(name: String, want: String, config: ExternalJSRun.Config) = {
+    ExternalJSRun.start(List("node"), config) { stdin =>
+      val p = new java.io.PrintStream(stdin)
+      p.println("""const process = require("process");""");
+      p.println(s"""process.exit(process.env["$name"] !== "$want");""");
+      p.close()
+    }
+  }
+
+  @Test
+  def setEnv: Unit = {
+    val config = silentConfig
+      .withEnv(Map("EXTERNAL_JS_RUN_TEST" -> "witness"))
+    val run = checkEnvRun("EXTERNAL_JS_RUN_TEST", "witness", config)
+
+    Await.result(run.future, 1.second)
+  }
+
+  // Confidence tests for checkEnvRun.
+
+  @Test
+  def setEnvWrong: Unit = {
+    val config = silentConfig
+      .withEnv(Map("EXTERNAL_JS_RUN_TEST" -> "not-witness"))
+    val run = checkEnvRun("EXTERNAL_JS_RUN_TEST", "witness", config)
+
+    assertFails(run.future) {
+      case ExternalJSRun.NonZeroExitException(1) => // OK
+    }
+  }
+
+  @Test
+  def setEnvMissing: Unit = {
+    val run = checkEnvRun("EXTERNAL_JS_RUN_TEST", "witness", silentConfig)
+
+    assertFails(run.future) {
+      case ExternalJSRun.NonZeroExitException(1) => // OK
+    }
+  }
 }
