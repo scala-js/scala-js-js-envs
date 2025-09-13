@@ -119,7 +119,7 @@ final class RunConfig private (
   }
 }
 
-final object RunConfig {
+object RunConfig {
   type OnOutputStream = (Option[InputStream], Option[InputStream]) => Unit
   def apply(): RunConfig = new RunConfig()
 
