@@ -43,8 +43,12 @@ private[kit] final class MsgHandler {
     notifyAll()
   }
 
-  @tailrec
   def waitOnMessage(deadline: Deadline): String = synchronized {
+    waitOnMessageLoop(deadline)
+  }
+
+  @tailrec
+  private def waitOnMessageLoop(deadline: Deadline): String = {
     if (msgs.nonEmpty) {
       val (msg, newMsgs) = msgs.dequeue
       msgs = newMsgs
@@ -60,7 +64,7 @@ private[kit] final class MsgHandler {
       }
 
       wait(millis)
-      waitOnMessage(deadline)
+      waitOnMessageLoop(deadline)
     }
   }
 
