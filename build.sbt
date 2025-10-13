@@ -1,13 +1,13 @@
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 
 val previousVersion: Option[String] = Some("1.4.0")
-val newScalaBinaryVersionsInThisRelease: Set[String] = Set()
+val newScalaBinaryVersionsInThisRelease: Set[String] = Set("3")
 
 inThisBuild(Def.settings(
   version := "1.4.1-SNAPSHOT",
   organization := "org.scala-js",
   scalaVersion := "2.12.11",
-  crossScalaVersions := Seq("2.11.12", "2.12.11", "2.13.2"),
+  crossScalaVersions := Seq("2.11.12", "2.12.11", "2.13.2", "3.3.7"),
   scalacOptions ++= Seq(
     "-deprecation",
     "-feature",
@@ -108,6 +108,7 @@ val commonSettings = Def.settings(
         Set(prevProjectID)
     }
   },
+  mimaFailOnNoPrevious := !newScalaBinaryVersionsInThisRelease.contains(scalaBinaryVersion.value),
 )
 
 lazy val root = project
@@ -118,7 +119,7 @@ lazy val `scalajs-js-envs` = project
   .settings(
     commonSettings,
     libraryDependencies ++= Seq(
-      "org.scala-js" %% "scalajs-logging" % "1.1.1",
+      "org.scala-js" %% "scalajs-logging" % "1.2.0",
       "com.novocode" % "junit-interface" % "0.11" % "test",
     ),
   )

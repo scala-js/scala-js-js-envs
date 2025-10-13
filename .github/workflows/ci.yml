@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         nodejsversion: ["15"]
-        scalaversion: ["2.11.12", "2.12.11", "2.13.2"]
+        scalaversion: ["2.11.12", "2.12.11", "2.13.2", "3.x"]
         project: ["scalajs-js-envs", "scalajs-js-envs-test-kit", "scalajs-env-nodejs"]
         include:
           - nodejsversion: "16"
