@@ -1,7 +1,7 @@
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 
-val previousVersion: Option[String] = Some("1.4.0")
-val newScalaBinaryVersionsInThisRelease: Set[String] = Set("3")
+val previousVersion: Option[String] = Some("1.5.0")
+val newScalaBinaryVersionsInThisRelease: Set[String] = Set.empty
 
 inThisBuild(Def.settings(
   organization := "org.scala-js",
@@ -87,16 +87,7 @@ val commonSettings = Def.settings(
         // New in this release, no binary compatibility to comply to
         Set.empty
       case Some(prevVersion) =>
-        /* Filter out e:info.apiURL as it expects 1.1.1-SNAPSHOT, whereas the
-         * artifact we're looking for has 1.1.0 (for example).
-         */
-        val prevExtraAttributes =
-          thisProjectID.extraAttributes.filterKeys(_ != "e:info.apiURL")
-        val prevProjectID =
-          (thisProjectID.organization % thisProjectID.name % prevVersion)
-            .cross(thisProjectID.crossVersion)
-            .extra(prevExtraAttributes.toSeq: _*)
-        Set(prevProjectID)
+        Set(thisProjectID.organization %% thisProjectID.name % prevVersion)
     }
   },
   mimaFailOnNoPrevious := !newScalaBinaryVersionsInThisRelease.contains(scalaBinaryVersion.value),
