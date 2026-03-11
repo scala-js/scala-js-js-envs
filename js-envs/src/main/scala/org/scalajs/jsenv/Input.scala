@@ -40,6 +40,9 @@ object Input {
 
   /** The file is to be loaded as a CommonJS module. */
   final case class CommonJSModule(module: Path) extends Input
+
+  /** The file is a WebAssembly component binary. */
+  final case class WasmComponent(component: Path) extends Input
 }
 
 class UnsupportedInputException(msg: String, cause: Throwable)

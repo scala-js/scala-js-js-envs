@@ -5,6 +5,7 @@ val newScalaBinaryVersionsInThisRelease: Set[String] = Set.empty
 
 inThisBuild(Def.settings(
   organization := "org.scala-js",
+  version := "1.4.0-wasmcomponent-SNAPSHOT",
   scalaVersion := "2.12.11",
   crossScalaVersions := Seq("2.11.12", "2.12.11", "2.13.2", "3.3.7"),
   scalacOptions ++= Seq(
@@ -99,6 +100,7 @@ lazy val root = project
     `scalajs-js-envs`,
     `scalajs-js-envs-test-kit`,
     `scalajs-env-nodejs`,
+    `scalajs-env-wasmtime`,
   )
   .settings(
     publish / skip := true,
@@ -136,3 +138,11 @@ lazy val `scalajs-env-nodejs` = project
     ),
   )
   .dependsOn(`scalajs-js-envs`, `scalajs-js-envs-test-kit` % "test")
+
+lazy val `scalajs-env-wasmtime` = project
+  .in(file("wasmtime"))
+  .settings(
+    commonSettings,
+    name := "scalajs-env-wasmtime",
+  )
+  .dependsOn(`scalajs-js-envs`)
