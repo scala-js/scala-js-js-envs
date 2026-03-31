@@ -29,8 +29,12 @@ final class WasmtimeEnv(config: WasmtimeEnv.Config) extends JSEnv {
 
   def startWithCom(input: Seq[Input], runConfig: RunConfig,
       onMessage: String => Unit): JSComRun = {
-    JSComRun.failed(new UnsupportedOperationException(
-        "WasmtimeEnv does not support startWithCom yet."))
+    WasmtimeEnv.validator.validate(runConfig)
+    val wasmPath = validateInput(input)
+    ComRun.start(wasmPath, runConfig, onMessage) { case (comWasmPath, env) =>
+      val comRunConfig = runConfig.withEnv(env ++ runConfig.env)
+      internalStart(comWasmPath, comRunConfig)
+    }
   }
 
   private def validateInput(input: Seq[Input]): Path =

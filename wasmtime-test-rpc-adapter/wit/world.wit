@@ -1,0 +1,5 @@
+package scalajs:test-rpc-adapter;
+
+world test-rpc-adapter {
+  export scalajs:test-rpc/rpc;
+}

@@ -1,4 +1,7 @@
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
+import org.scalajs.linker.interface.ModuleKind
+import org.scalajs.sbtplugin.ScalaJSPlugin
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 
 val previousVersion: Option[String] = Some("1.5.0")
 val newScalaBinaryVersionsInThisRelease: Set[String] = Set.empty
@@ -139,10 +142,56 @@ lazy val `scalajs-env-nodejs` = project
   )
   .dependsOn(`scalajs-js-envs`, `scalajs-js-envs-test-kit` % "test")
 
+// Produces the Wasm component binary that is an adapter for talking to sbt (JVM)
+// over WASI sockets. The generated binary is published as a resource of the
+// `scalajs-env-wasmtime` project, and is composed with the component under test
+// during test execution.
+lazy val `wasmtime-test-rpc-adapter` = project
+  .in(file("wasmtime-test-rpc-adapter"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "wasmtime-test-rpc-adapter",
+    commonSettings,
+    publish / skip := true,
+    scalaVersion := "2.12.11",
+    crossScalaVersions := Seq("2.12.11"),
+    scalaJSUseMainModuleInitializer := false,
+    scalaJSWitDirectory := baseDirectory.value / "wit",
+    scalaJSWitWorld := Some("test-rpc-adapter"),
+    scalaJSLinkerConfig ~= { config =>
+      val witDir = file("wasmtime-test-rpc-adapter/wit").getAbsolutePath
+      config
+        .withExperimentalUseWebAssembly(true)
+        .withWasmFeatures(_.withWitDirectory(Some(witDir)))
+        .withWasmFeatures(_.withWitWorld(Some("test-rpc-adapter")))
+        .withModuleKind(ModuleKind.WasmComponent)
+    },
+    Compile / fastLinkJS / scalaJSLinkerOutputDirectory := target.value / "adapter-fastopt",
+  )
+
 lazy val `scalajs-env-wasmtime` = project
   .in(file("wasmtime"))
   .settings(
     commonSettings,
     name := "scalajs-env-wasmtime",
+    Compile / resourceGenerators += Def.task {
+      (`wasmtime-test-rpc-adapter` / Compile / fastLinkJS).value
+
+      val fastSource =
+        (`wasmtime-test-rpc-adapter` / Compile / fastLinkJS / scalaJSLinkerOutputDirectory).value / "main.wasm"
+
+      // This must match with `AdapterResourcePath` in `wasmtime/ComSupport.scala`
+      val targetDir =
+        (Compile / resourceManaged).value /
+          "org" / "scalajs" / "jsenv" / "wasmtime" / "test-rpc"
+      val defaultTarget = targetDir / "adapter.wasm"
+      val fastTarget = targetDir / "adapter-fastopt.wasm"
+
+      IO.createDirectory(targetDir)
+      IO.copyFile(fastSource, fastTarget)
+      IO.copyFile(fastSource, defaultTarget)
+
+      Seq(defaultTarget, fastTarget)
+    }.taskValue,
   )
   .dependsOn(`scalajs-js-envs`)
