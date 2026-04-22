@@ -26,6 +26,8 @@ import org.scalajs.jsenv.test.kit.{TestKit, Run}
 
 private[test] class RunTests(config: JSEnvSuiteConfig, withCom: Boolean,
     defaultInputKind: TestKit.InputKind) {
+  import RunTests._
+
   private val kit = new TestKit(config.jsEnv, config.awaitTimeout, defaultInputKind)
 
   private def withRun(input: Seq[Input])(body: Run => Unit) = {
@@ -181,4 +183,14 @@ private[test] class RunTests(config: JSEnvSuiteConfig, withCom: Boolean,
     val cfg = RunConfig().withEternallyUnsupportedOption(true)
     withRun("", cfg)(identity)
   }
+
+  @Test(expected = classOf[UnsupportedInputException])
+  def ensureValidateInput: Unit = {
+    val input = EternallyUnsupportedInput()
+    withRun(Seq(input))(identity)
+  }
+}
+
+private[test] object RunTests {
+  final case class EternallyUnsupportedInput() extends Input
 }
