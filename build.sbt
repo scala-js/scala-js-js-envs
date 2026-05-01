@@ -119,7 +119,7 @@ lazy val `scalajs-js-envs-test-kit` = project
   .settings(
     commonSettings,
     libraryDependencies ++= Seq(
-        "com.google.jimfs" % "jimfs" % "1.1",
+        "com.google.jimfs" % "jimfs" % "1.3.1",
         "junit" % "junit" % "4.12",
         "com.novocode" % "junit-interface" % "0.11" % "test"
     ),
@@ -131,7 +131,7 @@ lazy val `scalajs-env-nodejs` = project
   .settings(
     commonSettings,
     libraryDependencies ++= Seq(
-        "com.google.jimfs" % "jimfs" % "1.1",
+        "com.google.jimfs" % "jimfs" % "1.3.1",
         "com.novocode" % "junit-interface" % "0.11" % "test"
     ),
   )
