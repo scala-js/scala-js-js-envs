@@ -19,11 +19,13 @@ import java.nio.file.Path
  *  Implementors of a [[JSEnv]] are expected to pattern match on this input
  *  type and handle the ones they support.
  *
- *  Note that this type is not sealed, so future versions of Scala.js may add
- *  additional input types. Older [[JSEnv]]s are expected to fail in this case
- *  with an [[UnsupportedInputException]].
+ *  Note that this type is not sealed, so future versions of Scala.js, as well
+ *  as third-party libraries, may add additional input types.
+ *
+ *  [[JSEnv]]s are expected to fail with an [[UnsupportedInputException]] on
+ *  `Input` types that they do not handle.
  */
-abstract class Input private ()
+abstract class Input
 
 object Input {
   /** The file is to be loaded as a script into the global scope. */
