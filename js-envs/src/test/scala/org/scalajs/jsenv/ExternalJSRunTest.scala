@@ -95,7 +95,7 @@ class ExternalJSRunTest {
     ExternalJSRun.start(List("node"), config) { stdin =>
       val p = new java.io.PrintStream(stdin)
       p.println("""const process = require("process");""");
-      p.println(s"""process.exit(process.env["$name"] !== "$want");""");
+      p.println(s"""process.exit(process.env["$name"] !== "$want" ? 1 : 0);""");
       p.close()
     }
   }
