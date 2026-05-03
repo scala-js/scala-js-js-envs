@@ -1,6 +1,6 @@
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 
-val previousVersion: Option[String] = Some("1.5.0")
+val previousVersion: Option[String] = Some("1.6.0")
 val newScalaBinaryVersionsInThisRelease: Set[String] = Set.empty
 
 inThisBuild(Def.settings(
