@@ -48,11 +48,24 @@ final class NodeJSEnv(config: NodeJSEnv.Config) extends JSEnv {
     }
   }
 
-  private def validateInput(input: Seq[Input]): Unit = input.foreach {
-    case _:Input.Script | _:Input.ESModule | _:Input.CommonJSModule =>
-      // ok
-    case _ =>
-      throw new UnsupportedInputException(input)
+  private def validateInput(input: Seq[Input]): Unit = {
+    val knownInputsSoFar = new java.util.IdentityHashMap[Input, Boolean]()
+    for (item <- input) {
+      item match {
+        case _: Input.Script =>
+          // ok; do not add to knownInputsSoFar
+        case _:Input.ESModule | _:Input.CommonJSModule =>
+          // ok
+          knownInputsSoFar.put(item, true)
+        case Input.WasmModule(_, imports) =>
+          // check that all imports are known
+          if (!imports.forall(pair => knownInputsSoFar.containsKey(pair._2)))
+            throw new UnsupportedInputException(input)
+          knownInputsSoFar.put(item, true)
+        case _ =>
+          throw new UnsupportedInputException(input)
+      }
+    }
   }
 
   private def internalStart(input: Seq[Input], runConfig: RunConfig): JSRun = {
@@ -95,6 +108,66 @@ object NodeJSEnv {
         "require('source-map-support').install();".getBytes(StandardCharsets.UTF_8))
   }
 
+  private lazy val wasmModuleSupport: String = {
+    val i16ArrayModuleBytes =
+      java.util.Base64.getDecoder().decode(BuildInfo.i16ArrayModuleBytes)
+    val i16ArrayModuleBytesContent =
+      i16ArrayModuleBytes.map(java.lang.Byte.toUnsignedInt(_)).mkString(",")
+
+    raw"""
+      |const wasmI16ArrayBytes = new Uint8Array([$i16ArrayModuleBytesContent]);
+      |const wasmI16ArrayPromise =
+      |    WebAssembly.instantiate(wasmI16ArrayBytes).then(m => m.instance.exports);
+      |
+      |async function importWasmModule(path, imports) {
+      |  const wasmI16Array = await wasmI16ArrayPromise;
+      |
+      |  const wasmI16ArrayToJSString = function(array) {
+      |    var len = wasmI16Array.length(array);
+      |    var result = "";
+      |    for (var i = 0; i !== len; i++)
+      |      result += String.fromCharCode(wasmI16Array.get(array, i) & 0xffff);
+      |    return result;
+      |  }
+      |
+      |  const jsStringToWasmI16Array = function(str) {
+      |    var len = str.length;
+      |    var result = wasmI16Array.create(len);
+      |    for (var i = 0; i !== len; i++)
+      |      wasmI16Array.set(result, i, str.charCodeAt(i));
+      |    return result;
+      |  }
+      |
+      |  // a null prototype is required to isolate Wasm even from what's in Object.prototype
+      |  const importsObj = Object.assign(Object.create(null), imports);
+      |
+      |  if (typeof scalajsCom !== 'undefined') {
+      |    const comImport = Object.create(null);
+      |    comImport.send = function(msg) {
+      |      scalajsCom.send(wasmI16ArrayToJSString(msg));
+      |    };
+      |    importsObj["scalajs:com"] = comImport;
+      |  }
+      |
+      |  const fs = await import('node:fs/promises');
+      |  const buffer = await fs.readFile(path);
+      |  const result = await WebAssembly.instantiate(buffer, importsObj);
+      |  const moduleExports = result.instance.exports;
+      |
+      |  if (typeof scalajsCom !== 'undefined') {
+      |    const newReceive = moduleExports["scalajs:com/receive"];
+      |    if (newReceive !== undefined) {
+      |      scalajsCom.init(function(msg) {
+      |        newReceive(jsStringToWasmI16Array(msg));
+      |      });
+      |    }
+      |  }
+      |
+      |  return moduleExports;
+      |}
+    """.stripMargin
+  }
+
   private def write(input: Seq[Input])(out: OutputStream): Unit = {
     def runScript(path: Path): String = {
       try {
@@ -120,36 +193,53 @@ object NodeJSEnv {
       }
     }
 
+    val inputToVarName = new java.util.IdentityHashMap[Input, String]()
+    for ((input, index) <- input.zipWithIndex)
+      inputToVarName.put(input, s"module$index")
+
     def requireCommonJSModule(module: Path): String =
       s"""require("${escapeJS(toFile(module).getAbsolutePath)}")"""
 
     def importESModule(module: Path): String =
       s"""import("${escapeJS(toFile(module).toURI.toASCIIString)}")"""
 
-    def execInputExpr(input: Input): String = input match {
-      case Input.Script(script)         => runScript(script)
-      case Input.CommonJSModule(module) => requireCommonJSModule(module)
-      case Input.ESModule(module)       => importESModule(module)
+    def importWasmModule(module: Path, imports: List[(String, Input)]): String = {
+      val importsObjItems = for ((name, importInput) <- imports) yield
+        s""""${escapeJS(name)}": ${inputToVarName.get(importInput)}"""
+      val importsObj = importsObjItems.mkString("{", ", ", "}")
+
+      s"""importWasmModule("${escapeJS(toFile(module).getAbsolutePath)}", $importsObj)"""
     }
+
+    def execInputExpr(input: Input): String = input match {
+      case Input.Script(script)              => runScript(script)
+      case Input.CommonJSModule(module)      => requireCommonJSModule(module)
+      case Input.ESModule(module)            => importESModule(module)
+      case Input.WasmModule(module, imports) => importWasmModule(module, imports)
+    }
+
+    val hasESModule = input.exists(_.isInstanceOf[Input.ESModule])
+    val hasWasmModule = input.exists(_.isInstanceOf[Input.WasmModule])
 
     val p = new PrintStream(out, false, "UTF8")
     try {
-      if (!input.exists(_.isInstanceOf[Input.ESModule])) {
-        /* If there is no ES module in the input, we can do everything
-         * synchronously, and directly on the standard input.
+      if (!hasESModule && !hasWasmModule) {
+        /* If there is no ES module nor Wasm module in the input, we can do
+         * everything synchronously, and directly on the standard input.
          */
         for (item <- input)
           p.println(execInputExpr(item) + ";")
       } else {
-        /* If there is at least one ES module, we must asynchronous chain things,
-         * and we must use an actual file to feed code to Node.js (because
-         * `import()` cannot be used from the standard input).
+        /* If there is at least one ES module or Wasm module, we must asynchronously
+         * chain things, and we must use an actual file to feed code to Node.js
+         * (because `import()` cannot be used from the standard input).
          */
-        val importChain = input.foldLeft("Promise.resolve()") { (prev, item) =>
-          s"$prev.\n  then(() => ${execInputExpr(item)})"
-        }
+        val importChain = input.foldLeft("Promise.resolve().then(() =>") { (prev, item) =>
+          s"$prev\n  Promise.resolve(${execInputExpr(item)}).then((${inputToVarName.get(item)}) =>"
+        } + ("\n  void 0" + ")" * (input.size + 1))
         val importerFileContent = {
           s"""
+            |${if (hasWasmModule) wasmModuleSupport else "" }
             |$importChain.catch(e => {
             |  console.error(e);
             |  process.exit(1);

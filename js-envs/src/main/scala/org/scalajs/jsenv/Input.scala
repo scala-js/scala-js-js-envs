@@ -42,6 +42,16 @@ object Input {
 
   /** The file is to be loaded as a CommonJS module. */
   final case class CommonJSModule(module: Path) extends Input
+
+  /** The file is to be loaded as a Wasm module.
+   *
+   *  The `imports` are made available to the given module. Each pair
+   *  `(name, input)` means that the Wasm module can import the module `name`
+   *  and get the loaded result of `input`. `input` must be an `Input`
+   *  appearing before this `Input.WasmModule` in the sequence of `Input`s to
+   *  the JS env (as determined by `eq`).
+   */
+  final case class WasmModule(module: Path, imports: List[(String, Input)]) extends Input
 }
 
 class UnsupportedInputException(msg: String, cause: Throwable)
