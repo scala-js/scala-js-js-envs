@@ -1,3 +1,5 @@
+import java.nio.charset.StandardCharsets
+
 import com.typesafe.tools.mima.core.{Problem, ProblemFilters}
 
 val previousVersion: Option[String] = Some("1.6.0")
@@ -128,11 +130,20 @@ lazy val `scalajs-js-envs-test-kit` = project
 
 lazy val `scalajs-env-nodejs` = project
   .in(file("nodejs-env"))
+  .enablePlugins(BuildInfoPlugin)
   .settings(
     commonSettings,
     libraryDependencies ++= Seq(
         "com.google.jimfs" % "jimfs" % "1.3.1",
         "com.novocode" % "junit-interface" % "0.11" % "test"
     ),
+    buildInfoPackage := "org.scalajs.jsenv.nodejs",
+    buildInfoOptions += BuildInfoOption.PackagePrivate,
+    buildInfoKeys := Nil,
+    buildInfoKeys += {
+      val bytes = build.WasmGCArrayAccessModules.i16ArrayModuleBytes
+      val str = new String(java.util.Base64.getEncoder().encode(bytes), StandardCharsets.ISO_8859_1)
+      BuildInfoKey(("i16ArrayModuleBytes", str)),
+    },
   )
   .dependsOn(`scalajs-js-envs`, `scalajs-js-envs-test-kit` % "test")
